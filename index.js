@@ -1,5 +1,5 @@
 const express = require("express");
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const { MongoClient, ObjectId } = require("mongodb");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const cors = require("cors");
@@ -10,19 +10,13 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-console.log(process.env.DB_USER);
-console.log(process.env.DB_PASSWORD);
+// console.log(process.env.DB_USER);
+// console.log(process.env.DB_PASSWORD);
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.gdk9eql.mongodb.net/?retryWrites=true&w=majority`;
 console.log(uri);
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(uri, {
-	serverApi: {
-		version: ServerApiVersion.v1,
-		strict: true,
-		deprecationErrors: true,
-	},
-});
+const client = new MongoClient(uri);
 
 function verifyJWT(req, res, next) {
 	const authHeader = req.headers.authorization;
@@ -57,11 +51,12 @@ async function run() {
 
 		app.get("/services", async (req, res) => {
 			const query = {};
-			const cursor = serviceCollection.find(query);
-			const services = await cursor.toArray();
-			res.send(services);
+			const cursor = await serviceCollection.find(query).toArray();
+			console.log(cursor);
+			// const services = await cursor.toArray();
+			res.send(cursor);
 		});
-		app.get("/services/:id",  async (req, res) => {
+		app.get("/services/:id", async (req, res) => {
 			const id = req.params.id;
 			const query = { _id: new ObjectId(id) };
 			const service = await serviceCollection.findOne(query);
@@ -74,11 +69,10 @@ async function run() {
 			console.log(req.headers.authorization);
 			const decoded = req.decoded;
 			console.log("Inside Orders api", decoded);
-			
-			if(decoded.email !==req.query.email){
-				res.status(403).send({message:'unauthorized access' })
-			}
 
+			if (decoded.email !== req.query.email) {
+				res.status(403).send({ message: "unauthorized access" });
+			}
 
 			let query = {};
 			if (req.query?.email) {
@@ -97,7 +91,7 @@ async function run() {
 			res.send(result);
 		});
 
-		app.patch("/orders/:id",verifyJWT, async (req, res) => {
+		app.patch("/orders/:id", verifyJWT, async (req, res) => {
 			const id = req.params.id;
 			const status = req.body.status;
 			const query = { _id: new ObjectId(id) };
